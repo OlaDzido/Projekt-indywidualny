@@ -4,7 +4,11 @@ from requests.exceptions import RequestException
 from contextlib import closing
 from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime, date
+
+import pymysql
+import datetime
+from datetime import date
+from datetime import datetime as dt
 
 url = 'https://www.filmweb.pl/ranking/netflix/Komedia/13/2018'
 page = requests.get(url)
@@ -28,26 +32,44 @@ for elem in movie_containers:
     if rate not in name:
         ratings.append(rate)
 
-    vote = elem.find('span', {'class' : 'rate__count'}).text
+    vote = elem.find('span', {'class' : 'rate__count'}).text[:-6]
     if vote not in votes:
         votes.append(vote)
 
-    place = elem.h3.span.text
+    place = elem.h3.span.text[:-1]
     if place not in places:
         places.append(place)
 
+votes = [elem.replace(" ", "") for elem in votes]
+votes = [int(elem) for elem in votes]
+ratings = [elem.replace(",",".") for elem in ratings]
+ratings = [(float(elem)) for elem in ratings]
+places = [int(elem) for elem in places]
+data = {'place': places,
+        'tittle': name,
+        'ratings': ratings,
+        'votes': votes,
+        'data' : str(day)
+        }
+
+df = pd.DataFrame(data, columns=['place', 'tittle','ratings','votes', 'data'])
+
+tuples=list(df.itertuples(index=False, name=None))
 
 
-print(name, ratings, votes)
-data = {
-    "Date" : day,
-    "Place" : places,
-    "Title" : name,
-    "Rating" :ratings,
-    "Votes" : votes
 
-}
-df = pd.DataFrame(data, columns=["Place","Title", "Rating", "Votes", "Date"])
-print(df)
-df = df['Place'].str[-3:-1].astype(int)
-print(df)
+connection = pymysql.connect(host='127.0.0.1',
+                             user='username',
+                             password='password',
+                             db='films',
+                             charset='utf8mb4')
+
+c = connection.cursor()
+a =(datetime.date.today())
+print(tuples)
+x = dt.strftime(a, '%Y_%m_%d')
+c.execute("""CREATE TABLE IF NOT EXISTS ranking{datax} (place INT(4) NOT NULL, tittle VARCHAR(60) NOT NULL, ratings DOUBLE NOT NULL, votes INT(20) NOT NULL, data DATE NOT NULL);""".format(datax=x, elem=elem))
+connection.commit()
+sql=("""INSERT INTO ranking{datax} (place,tittle,ratings,votes, data) VALUES (%s,%s,%s,%s,%s);""".format(datax=x,))
+c.executemany(sql,tuples)
+connection.commit()
