@@ -10,9 +10,11 @@ import datetime
 from datetime import date
 from datetime import datetime as dt
 
-
 a = (datetime.date.today())
 x = dt.strftime(a, '%Y_%m_%d')
+
+
+
 
 
 def scrapping ():
@@ -60,9 +62,24 @@ def scrapping ():
 
     df = pd.DataFrame(data, columns=['place', 'tittle','ratings','votes', 'data'])
 
-    tuples=list(df.itertuples(index=False, name=None))
+    tuples = list(df.itertuples(index=False, name=None))
+
+    make_table_and_insert_data(tuples)
 
 
+
+def make_table_and_insert_data(tuples):
+
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS ranking{datax} (place INT(4) NOT NULL, tittle VARCHAR(60) NOT NULL,
+        ratings DOUBLE NOT NULL, votes INT(20) NOT NULL, data DATE NOT NULL);""".format(datax=x))
+    connection.commit()
+
+
+    sql = (
+        """INSERT INTO ranking{datax} (place,tittle,ratings,votes, data) VALUES (%s,%s,%s,%s,%s);""".format(datax=x, ))
+    c.executemany(sql, tuples)
+    connection.commit()
 
 
 
@@ -88,11 +105,13 @@ else:
     format_result = []
     for elem in result:
         format_result.append((''.join(map(str, elem))))
+        
+    if "ranking{datax}".format(datax =x) in format_result:
+        print("Taka tabela już istnieje")
+    else:
+        scrapping()
 
-    for elem in format_result:
-        if elem == "ranking{datax}".format(datax =x):
-            print("Tabela z dnia {} już istnieje".format(elem))
-    else: scrapping()
+
 
 
 
@@ -104,6 +123,6 @@ else:
 # x = dt.strftime(a, '%Y_%m_%d')
 # c.execute("""CREATE TABLE IF NOT EXISTS ranking{datax} (place INT(4) NOT NULL, tittle VARCHAR(60) NOT NULL, ratings DOUBLE NOT NULL, votes INT(20) NOT NULL, data DATE NOT NULL);""".format(datax=x, elem=elem))
 # connection.commit()
-# # sql=("""INSERT INTO ranking{datax} (place,tittle,ratings,votes, data) VALUES (%s,%s,%s,%s,%s);""".format(datax=x,))
-# # c.executemany(sql,tuples)
-# # connection.commit()
+# sql=("""INSERT INTO ranking{datax} (place,tittle,ratings,votes, data) VALUES (%s,%s,%s,%s,%s);""".format(datax=x,))
+# c.executemany(sql,tuples)
+# connection.commit()
